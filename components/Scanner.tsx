@@ -1,9 +1,84 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
-import { CameraView, Camera } from "expo-camera";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  useColorScheme,
+} from "react-native";
+import { Camera, CameraView } from "expo-camera";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import ModalCheckIn from "./ModalCheckIn";
 import { useFocusEffect } from "@react-navigation/native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useDerivedValue,
+  withTiming,
+  withDelay,
+} from "react-native-reanimated";
+import { CheckCircleIcon, XCircleIcon } from "lucide-react-native";
+import { Icon } from "@gluestack-ui/themed";
+
+function BottomSheet({ isOpen, toggleSheet, duration = 500, children }) {
+  const colorScheme = useColorScheme();
+  const height = useSharedValue(0);
+  const progress = useDerivedValue(() =>
+    withTiming(isOpen.value ? 0 : 1, { duration })
+  );
+
+  const sheetStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: progress.value * 2 * height.value }],
+  }));
+
+  const backgroundColorSheetStyle = {
+    backgroundColor: colorScheme === "light" ? "#f8f9ff" : "#272B3C",
+  };
+
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: 1 - progress.value,
+    zIndex: isOpen.value
+      ? 1
+      : withDelay(duration, withTiming(-1, { duration: 0 })),
+  }));
+
+  return (
+    <>
+      <Animated.View style={[sheetStyles.backdrop, backdropStyle]}>
+        <TouchableOpacity onPress={toggleSheet} />
+      </Animated.View>
+      <Animated.View
+        onLayout={(e) => {
+          height.value = e.nativeEvent.layout.height;
+        }}
+        style={[sheetStyles.sheet, sheetStyle, backgroundColorSheetStyle]}
+      >
+        {children}
+      </Animated.View>
+    </>
+  );
+}
+
+const sheetStyles = StyleSheet.create({
+  sheet: {
+    padding: 16,
+    paddingRight: 2,
+    paddingLeft: 2,
+    height: 150,
+    width: "100%",
+    position: "absolute",
+    bottom: 0,
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+    zIndex: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+});
 
 const Scanner = () => {
   const [hasPermission, setHasPermission] = useState<null | boolean>(null);
@@ -12,19 +87,13 @@ const Scanner = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [qrData, setQrData] = useState(null);
   const [data, setData] = useState<any>([]);
+  const colorScheme = useColorScheme();
+  const isSheetOpen = useSharedValue(isOpen);
 
   const resetScanner = () => {
     setScanned(false);
     setQrData(null);
-    setIsCameraVisible(false);
-    setTimeout(() => {
-      setIsCameraVisible(true);
-    }, 200);
-
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 3000);
-
+    setIsCameraVisible(true);
   };
 
   const checkIn = async (ticketId: any) => {
@@ -48,11 +117,10 @@ const Scanner = () => {
         const data = await response.json();
         console.log("Respuesta del CHECKIN:", data);
         setData(data);
-        setIsOpen(true); // Abrimos la hoja inferior automáticamente
+        setIsOpen(true);
+        isSheetOpen.value = true;
       } catch (error) {
         console.error("Error en la solicitud:", error);
-      } finally {
-        resetScanner(); // Reset the scanner after processing the data
       }
     }
   };
@@ -75,12 +143,33 @@ const Scanner = () => {
     checkIn(data);
   };
 
+  useEffect(() => {
+    if (isOpen) {
+      setIsCameraVisible(false);
+    } else {
+      setIsCameraVisible(true);
+    }
+  }, [isOpen]);
+
+  const toggleSheet = () => {
+    setIsOpen(!isOpen);
+    isSheetOpen.value = !isOpen;
+    if (!isOpen) {
+      resetScanner();
+    }
+  };
+
   if (hasPermission === null) {
     return <Text>Requesting for camera permission</Text>;
   }
   if (hasPermission === false) {
     return <Text>No access to camera</Text>;
   }
+
+  const contentStyle = {
+    color: colorScheme === "light" ? "#001a72" : "#f8f9ff",
+    textDecorationColor: colorScheme === "light" ? "#001a72" : "#f8f9ff",
+  };
 
   return (
     <View style={styles.container}>
@@ -93,28 +182,46 @@ const Scanner = () => {
           style={StyleSheet.absoluteFillObject}
         />
       )}
-      {data.message && (
-        <View style={styles.modal}>
-          <ModalCheckIn data={data} isOpen={isOpen} />
+      <BottomSheet isOpen={isSheetOpen} toggleSheet={toggleSheet}>
+        <Animated.Text style={contentStyle}>{data.message}</Animated.Text>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.bottomSheetButton]}
+            onPress={toggleSheet}
+          >
+            <Text style={[styles.bottomSheetButtonText, contentStyle]}>
+              Close
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
+      </BottomSheet>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  modal: {
-    width: "100%",
-    height: "100%",
-  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  camera: {
-    flex: 1,
+  buttonContainer: {
+    marginTop: 16,
+    display: "flex",
+    flexDirection: "row",
     width: "100%",
+    justifyContent: "space-around",
+  },
+  bottomSheetButton: {
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingBottom: 2,
+  },
+  bottomSheetButtonText: {
+    fontWeight: 600,
+    textDecorationLine: "underline",
   },
 });
 
