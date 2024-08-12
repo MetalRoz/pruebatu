@@ -8,6 +8,21 @@ import { View, Image, TouchableOpacity } from "react-native";
 const EventsPast = React.memo(({ item, index, navigation }: any) => {
   const styles = useStyleSheet(themedStyles);
 
+  function eventFecha(fecha: any) {
+    const fechaCompleta = fecha.substring(0, 10);
+    let timeString = fecha.substring(10, 16);
+    let timeNumber = Number(timeString.replace(":", ""));
+    let formattedTime =
+      timeNumber.toString().slice(0, -2) +
+      ":" +
+      timeNumber.toString().slice(-2);
+    if (timeNumber > 12) {
+      return `${fechaCompleta} ${formattedTime} PM`;
+    } else {
+      return `${fechaCompleta} ${formattedTime} AM`;
+    }
+  }
+
   return (
     <Container style={styles.container} useSafeArea={false}>
       <Content style={styles.content}>
@@ -25,18 +40,18 @@ const EventsPast = React.memo(({ item, index, navigation }: any) => {
               style={styles.img}
             />
             <View>
-              <Text style={styles.test}>{item.event_name}</Text>
+              <Text style={styles.title}>{item.event_name}</Text>
               <View style={styles.times}>
                 <Text
                   status="platinum"
                   category="subhead"
-                  children={`${item.EVENT_ORDERD_TICKETS} ordenados`}
+                  children={`${item.EVENT_ORDERD_TICKETS} / ${item.EVENT_TOTAL_TICKETS}`}
                 />
                 <Layout style={styles.dot} />
                 <Text
                   status="platinum"
                   category="subhead"
-                  children={`${item.EVENT_TOTAL_TICKETS} total`}
+                  children={eventFecha(item.event_start_datetime)}
                 />
               </View>
             </View>
@@ -50,8 +65,9 @@ const EventsPast = React.memo(({ item, index, navigation }: any) => {
 export default EventsPast;
 
 const themedStyles = StyleService.create({
-  test: {
+  title: {
     marginLeft: 7,
+    fontWeight: "bold",
   },
 
   times: {

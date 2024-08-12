@@ -17,8 +17,9 @@ import Animated, {
   withTiming,
   withDelay,
 } from "react-native-reanimated";
-import { CheckCircleIcon, XCircleIcon } from "lucide-react-native";
 import { Icon } from "@gluestack-ui/themed";
+import { CheckCircleIcon, CheckIcon, XCircleIcon } from "lucide-react-native";
+import { Header } from "@rneui/themed";
 
 function BottomSheet({ isOpen, toggleSheet, duration = 500, children }) {
   const colorScheme = useColorScheme();
@@ -45,8 +46,9 @@ function BottomSheet({ isOpen, toggleSheet, duration = 500, children }) {
   return (
     <>
       <Animated.View style={[sheetStyles.backdrop, backdropStyle]}>
-        <TouchableOpacity onPress={toggleSheet} />
+        <TouchableOpacity style={styles.flex} onPress={toggleSheet} />
       </Animated.View>
+
       <Animated.View
         onLayout={(e) => {
           height.value = e.nativeEvent.layout.height;
@@ -148,6 +150,7 @@ const Scanner = () => {
       setIsCameraVisible(false);
     } else {
       setIsCameraVisible(true);
+      resetScanner();
     }
   }, [isOpen]);
 
@@ -183,23 +186,45 @@ const Scanner = () => {
         />
       )}
       <BottomSheet isOpen={isSheetOpen} toggleSheet={toggleSheet}>
-        <Animated.Text style={contentStyle}>{data.message}</Animated.Text>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={[styles.bottomSheetButton]}
-            onPress={toggleSheet}
-          >
-            <Text style={[styles.bottomSheetButtonText, contentStyle]}>
-              Close
-            </Text>
-          </TouchableOpacity>
+        <View style={data.response ? styles.headerSuccess : styles.headerError}>
+          <Icon
+            style={styles.test}
+            as={data.response ? CheckCircleIcon : XCircleIcon}
+            size={40}
+          />
         </View>
+
+        <Animated.Text style={contentStyle}>{data.message}</Animated.Text>
       </BottomSheet>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+
+  headerSuccess: {
+    backgroundColor: "#34C759",
+    height: 70,
+    width: 420,
+    top: -32,
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+  },
+
+  headerError: {
+    backgroundColor: "#ff2d2d",
+    height: 70,
+    width: 420,
+    top: -32,
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+  },
+
+  test: {
+    color: "white",
+    margin: "auto",
+  },
+
   container: {
     flex: 1,
     justifyContent: "center",
@@ -220,8 +245,11 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   bottomSheetButtonText: {
-    fontWeight: 600,
+    fontWeight: "600",
     textDecorationLine: "underline",
+  },
+  flex: {
+    flex: 1,
   },
 });
 

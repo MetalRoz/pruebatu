@@ -8,6 +8,21 @@ import { View, Image, TouchableOpacity } from "react-native";
 const EventsLive = React.memo(({ item, index, navigation }: any) => {
   const styles = useStyleSheet(themedStyles);
 
+  function eventFecha(fecha: any) {
+    const fechaCompleta = fecha.substring(0, 10);
+    let timeString = fecha.substring(10, 16);
+    let timeNumber = Number(timeString.replace(":", ""));
+    let formattedTime =
+      timeNumber.toString().slice(0, -2) +
+      ":" +
+      timeNumber.toString().slice(-2);
+    if (timeNumber > 12) {
+      return `${fechaCompleta} | ${formattedTime} PM`;
+    } else {
+      return `${fechaCompleta} | ${formattedTime} AM`;
+    }
+  }
+
   return (
     <Container style={styles.container} useSafeArea={false}>
       <Content style={styles.content}>
@@ -30,13 +45,13 @@ const EventsLive = React.memo(({ item, index, navigation }: any) => {
                 <Text
                   status="platinum"
                   category="subhead"
-                  children={`${item.EVENT_ORDERD_TICKETS} ordenados`}
+                  children={`${item.EVENT_ORDERD_TICKETS} / ${item.EVENT_TOTAL_TICKETS}`}
                 />
                 <Layout style={styles.dot} />
                 <Text
                   status="platinum"
                   category="subhead"
-                  children={`${item.EVENT_TOTAL_TICKETS} total`}
+                  children={eventFecha(item.event_start_datetime)}
                 />
               </View>
             </View>
@@ -52,6 +67,7 @@ export default EventsLive;
 const themedStyles = StyleService.create({
   title: {
     marginLeft: 7,
+    fontWeight: "bold",
   },
 
   times: {
@@ -70,7 +86,6 @@ const themedStyles = StyleService.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
     borderRadius: 12,
   },
   img: {
