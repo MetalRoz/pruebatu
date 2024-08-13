@@ -45,8 +45,8 @@ const EventsCard = ({ data }: any) => {
           {data.TICKE_TITLE}
         </Text>
         <Text category="body" marginBottom={10}>
-          Done: <Text category="h7">{data.NUMBER_OF_CHACKIN}</Text>/
-          {data.NUMBER_OF_ORDER}
+          <Text category="h7">{data.NUMBER_OF_CHACKIN}</Text>/
+          {data.NUMBER_OF_ORDER} Checked in
         </Text>
         {/* <ProgressBar
           progress={0 / data.NUMBER_OF_ORDER}

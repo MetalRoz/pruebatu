@@ -40,7 +40,7 @@ const OrderScreen = () => {
             throw new Error("Error:" + `${response.status}`);
           }
           const result = await response.json();
-          setData(result.data); // Asegúrate de obtener la propiedad 'data' del resultado
+          setData(result.data);
         } catch (error) {
           console.error("Error en la solicitud:", error);
         }
