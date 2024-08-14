@@ -8,19 +8,23 @@ import { View, Image, TouchableOpacity } from "react-native";
 const EventsPast = React.memo(({ item, index, navigation }: any) => {
   const styles = useStyleSheet(themedStyles);
 
-  function eventFecha(fecha: any) {
-    const fechaCompleta = fecha.substring(0, 10);
-    let timeString = fecha.substring(10, 16);
-    let timeNumber = Number(timeString.replace(":", ""));
-    let formattedTime =
-      timeNumber.toString().slice(0, -2) +
-      ":" +
-      timeNumber.toString().slice(-2);
-    if (timeNumber > 12) {
-      return `${fechaCompleta} ${formattedTime} PM`;
-    } else {
-      return `${fechaCompleta} ${formattedTime} AM`;
-    }
+  function eventFecha(fecha: string) {
+    const date = new Date(fecha);
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    };
+
+    const formattedDate = new Intl.DateTimeFormat("es-ES", options).format(
+      date
+    );
+
+    return formattedDate;
   }
 
   return (
@@ -34,21 +38,19 @@ const EventsPast = React.memo(({ item, index, navigation }: any) => {
           activeOpacity={0.7}
         >
           <Layout level="2" style={styles.item}>
-            <Image
-              source={require("../assets/evento.webp")}
-              /* @ts-ignore */
-              style={styles.img}
-            />
+            <Image source={{ uri: item.event_image }} style={styles.img} />
             <View>
               <Text style={styles.title}>{item.event_name}</Text>
               <View style={styles.times}>
                 <Text
+                  style={styles.subtitle}
                   status="platinum"
                   category="subhead"
                   children={`${item.EVENT_ORDERD_TICKETS} / ${item.EVENT_TOTAL_TICKETS}`}
                 />
                 <Layout style={styles.dot} />
                 <Text
+                  style={styles.subtitle}
                   status="platinum"
                   category="subhead"
                   children={eventFecha(item.event_start_datetime)}
@@ -70,11 +72,16 @@ const themedStyles = StyleService.create({
     fontWeight: "bold",
   },
 
+  subtitle: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
   times: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 8,
-    marginLeft: 24,
+    marginLeft: 7,
   },
   dot: {
     width: 4,
@@ -86,13 +93,13 @@ const themedStyles = StyleService.create({
   item: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
     borderRadius: 12,
   },
   img: {
-    height: 60,
-    width: 60,
+    height: 90,
+    width: 117,
     borderRadius: 12,
+    objectFit: "fill",
   },
   container: {
     flex: 1,
