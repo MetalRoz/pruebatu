@@ -49,21 +49,12 @@ const Dashboard = ({ navigation }: any) => {
           let totalTickets = 0;
           let totalCheckInCount = 0;
 
-          console.log("Datos recibidos:", data.data.event_tickets);
-
           data.data.event_tickets.forEach((item) => {
-            const checkInCount$ = parseInt(item.CHECKIN_COUNT);
             totalTickets += item.TOTAL_TICKETS;
-            totalCheckInCount += checkInCount$;
+            totalCheckInCount += item.CHECKIN_COUNT;
           });
 
-          // Actualizar los estados
           setTotalTickets(totalTickets);
-          setCheckInCount(totalCheckInCount);
-
-          // Imprimir resultados
-          console.log("Total Tickets:", totalTickets);
-          console.log("Total Check-In Count:", totalCheckInCount);
         } catch (error) {
           console.error("Error en la solicitud:", error);
         }
@@ -99,11 +90,15 @@ const Dashboard = ({ navigation }: any) => {
                 {dataStorage.event_name}
               </Heading>
             </HStack>
-            <CircleProgress progress={3} total={totalTickets}></CircleProgress>
+
+            <CircleProgress
+              progress={checkInCount}
+              total={totalTickets}
+            ></CircleProgress>
           </Card>
         </Box>
 
-        <Text style={styles.subTitle}>Total de registros {checkInCount}</Text>
+        <Text style={styles.subTitle}>Total de registros </Text>
 
         <ScrollView>
           {data.map((ticket: any) => (
