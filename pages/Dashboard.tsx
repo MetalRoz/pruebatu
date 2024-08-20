@@ -55,6 +55,7 @@ const Dashboard = ({ navigation }: any) => {
           });
 
           setTotalTickets(totalTickets);
+          setCheckInCount(totalCheckInCount);
         } catch (error) {
           console.error("Error en la solicitud:", error);
         }
@@ -98,7 +99,7 @@ const Dashboard = ({ navigation }: any) => {
           </Card>
         </Box>
 
-        <Text style={styles.subTitle}>Total de registros </Text>
+        <Text style={styles.subTitle}>Total de registros</Text>
 
         <ScrollView>
           {data.map((ticket: any) => (

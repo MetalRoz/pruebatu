@@ -6,7 +6,7 @@ import EventsPast from "../components/EventsPast";
 import { Avatar, Icon, Pressable } from "@gluestack-ui/themed";
 import { User } from "lucide-react-native";
 import { Tab, TabView } from "@rneui/themed";
-import { Container, Content, VStack, HStack } from "../components";
+import { Container, VStack, HStack } from "../components";
 
 interface EventData {
   event_name: string;
@@ -19,6 +19,10 @@ interface EventData {
 export default function Events({ navigation, toggleMode }: any) {
   const [liveData, setLiveData] = useState<EventData[]>([]);
   const [pastData, setPastData] = useState<EventData[]>([]);
+  const [filteredLiveData, setFilteredLiveData] = useState<EventData[]>([]);
+  const [filteredPastData, setFilteredPastData] = useState<EventData[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   const apiEventsLive = "https://pruebatu.com/api/v2/event/live";
   const apiEventsPast = "https://pruebatu.com/api/v2/event/past";
   const [index, setIndex] = useState(0);
@@ -42,7 +46,7 @@ export default function Events({ navigation, toggleMode }: any) {
         throw new Error(`Error: ${response.status}`);
       }
       const data = await response.json();
-      setData(data.data); // Actualizar el estado con los datos recibidos
+      setData(data.data);
     } catch (error) {
       console.error("Error en la solicitud:", error);
     }
@@ -58,6 +62,7 @@ export default function Events({ navigation, toggleMode }: any) {
     setMode(modeStorage);
   };
 
+
   useEffect(() => {
     checkToken();
   }, [toggleMode]);
@@ -72,12 +77,27 @@ export default function Events({ navigation, toggleMode }: any) {
     }
   }, [index, token]);
 
+  useEffect(() => {
+    filterData();
+  }, [searchQuery, liveData, pastData]);
+
+  const filterData = () => {
+    const filteredLive = liveData.filter((event) =>
+      event.event_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    const filteredPast = pastData.filter((event) =>
+      event.event_name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredLiveData(filteredLive);
+    setFilteredPastData(filteredPast);
+  };
+
   const renderItems = (data: EventData[], Component: any) => {
     if (data.length === 0) {
       return <Text>No hay datos disponibles.</Text>;
     }
     return data.map((item, index) => (
-      <Container>
+      <Container key={index}>
         <Component item={item} index={index} navigation={navigation} />
       </Container>
     ));
@@ -88,13 +108,15 @@ export default function Events({ navigation, toggleMode }: any) {
       <View
         style={[
           styles.header,
-          { backgroundColor: mode === "light" ? "#1976D2" : "#222B45" }, // Ajusta el color para modo oscuro
+          { backgroundColor: mode === "light" || "" ? "#1976D2" : "#222B45" }, // Ajusta el color para modo oscuro
         ]}
       >
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar Evento"
           placeholderTextColor="#888"
+          value={searchQuery}
+          onChangeText={(text) => setSearchQuery(text)}
         />
         <VStack>
           <HStack>
@@ -137,12 +159,12 @@ export default function Events({ navigation, toggleMode }: any) {
         <TabView value={index} onChange={setIndex} animationType="spring">
           <TabView.Item style={{ width: "100%" }}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-              {renderItems(liveData, EventsLive)}
+              {renderItems(filteredLiveData, EventsLive)}
             </ScrollView>
           </TabView.Item>
           <TabView.Item style={{ width: "100%" }}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-              {renderItems(pastData, EventsPast)}
+              {renderItems(filteredPastData, EventsPast)}
             </ScrollView>
           </TabView.Item>
         </TabView>
@@ -152,10 +174,6 @@ export default function Events({ navigation, toggleMode }: any) {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    paddingHorizontal: 16,
-  },
-
   header: {
     padding: 10,
     paddingTop: 40,
@@ -171,85 +189,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: "82%",
   },
-  tabs: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginVertical: 10,
-  },
-  activeTab: {
-    marginHorizontal: 20,
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1976D2",
-    borderBottomWidth: 2,
-    borderBottomColor: "#1976D2",
-    paddingBottom: 5,
-  },
-  inactiveTab: {
-    marginHorizontal: 20,
-    fontSize: 16,
-    color: "#888",
-  },
   scrollContainer: {
     padding: 10,
-  },
-  eventCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFF",
-    borderRadius: 10,
-    marginBottom: 10,
-    overflow: "hidden",
-    elevation: 2,
-  },
-  eventBadgeContainer: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 10,
-  },
-  eventBadge: {
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: "#E0BBE4", // Ajusta este color según necesites
-    borderRadius: 10, // Para redondear los bordes de la badge
-  },
-  eventNumber: {
-    fontSize: 21,
-    fontWeight: "bold",
-    color: "#FFF",
-    textAlign: "center",
-  },
-  eventTotal: {
-    fontSize: 12,
-    color: "#FFF",
-    minWidth: 60,
-    maxHeight: 70,
-    textAlign: "center",
-  },
-  eventInfo: {
-    padding: 10,
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: "#888",
-  },
-  button: {
-    width: "100%",
-    padding: 15,
-    backgroundColor: "#1e40ff",
-    borderRadius: 5,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
   },
 });

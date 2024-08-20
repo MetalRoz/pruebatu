@@ -11,6 +11,7 @@ const CircleProgress = ({
 }) => {
   const progressValue = progress && total && total !== 0 ? progress / total : 0;
 
+
   return (
     <View style={styles.container}>
       <Circle
