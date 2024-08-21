@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TextInput, ScrollView } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  RefreshControl,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import EventsLive from "../components/EventsLive";
 import EventsPast from "../components/EventsPast";
@@ -22,6 +29,14 @@ export default function Events({ navigation, toggleMode }: any) {
   const [filteredLiveData, setFilteredLiveData] = useState<EventData[]>([]);
   const [filteredPastData, setFilteredPastData] = useState<EventData[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   const apiEventsLive = "https://pruebatu.com/api/v2/event/live";
   const apiEventsPast = "https://pruebatu.com/api/v2/event/past";
@@ -61,7 +76,6 @@ export default function Events({ navigation, toggleMode }: any) {
     }
     setMode(modeStorage);
   };
-
 
   useEffect(() => {
     checkToken();
@@ -158,13 +172,29 @@ export default function Events({ navigation, toggleMode }: any) {
 
         <TabView value={index} onChange={setIndex} animationType="spring">
           <TabView.Item style={{ width: "100%" }}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-              {renderItems(filteredLiveData, EventsLive)}
+            <ScrollView
+              contentContainerStyle={styles.scrollViewContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              <ScrollView contentContainerStyle={styles.scrollContainer}>
+                {/* Coloca aquí el contenido de tu aplicación */}
+                {renderItems(filteredLiveData, EventsLive)}
+              </ScrollView>
             </ScrollView>
           </TabView.Item>
           <TabView.Item style={{ width: "100%" }}>
-            <ScrollView contentContainerStyle={styles.scrollContainer}>
-              {renderItems(filteredPastData, EventsPast)}
+            <ScrollView
+              contentContainerStyle={styles.scrollViewContent}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
+            >
+              <ScrollView contentContainerStyle={styles.scrollContainer}>
+                {/* Coloca aquí el contenido de tu aplicación */}
+                {renderItems(filteredPastData, EventsPast)}
+              </ScrollView>
             </ScrollView>
           </TabView.Item>
         </TabView>
@@ -174,6 +204,9 @@ export default function Events({ navigation, toggleMode }: any) {
 }
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1, // Asegura que el ScrollView ocupe todo el espacio disponible
+  },
   header: {
     padding: 10,
     paddingTop: 40,

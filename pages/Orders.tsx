@@ -1,6 +1,6 @@
 import { Icon } from "@gluestack-ui/themed";
 import { QrCodeIcon, SearchIcon, TimerIcon } from "lucide-react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  RefreshControl,
+  ScrollView,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Container, Text as TextComponent } from "../components";
@@ -17,6 +19,14 @@ const OrderScreen = () => {
   const [data, setData] = useState<any[]>([]);
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [selectedTab, setSelectedTab] = useState("All");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     const consultaApi = async () => {
@@ -55,6 +65,11 @@ const OrderScreen = () => {
   }, [search, selectedTab, data]);
 
   const filterData = () => {
+    if (!data || !Array.isArray(data)) {
+      setFilteredData([]);
+      return;
+    }
+
     let filtered = data.filter(
       (item) =>
         item.ot_f_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -79,7 +94,9 @@ const OrderScreen = () => {
           {item.ot_f_name + " " + (item.ot_l_name || "")}
         </TextComponent>
         <TextComponent style={styles.emailText}>{item.ot_email}</TextComponent>
-        <TextComponent style={styles.orderNoText}>Order no: {item.order_id}</TextComponent>
+        <TextComponent style={styles.orderNoText}>
+          Order no: {item.order_id}
+        </TextComponent>
       </View>
       {item.ot_status === 0 ? (
         <View style={styles.iconClock}>
@@ -94,7 +111,7 @@ const OrderScreen = () => {
   );
 
   return (
-    <Container >
+    <Container>
       <TextInput
         style={styles.searchInput}
         placeholder="Buscar Evento"
@@ -162,12 +179,26 @@ const OrderScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      <FlatList data={filteredData} renderItem={renderItem} />
+      <ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {filteredData.length > 0 ? (
+          <FlatList data={filteredData} renderItem={renderItem} />
+        ) : (
+          <Text style={styles.noOrdersText}>No hay órdenes para mostrar</Text>
+        )}
+      </ScrollView>
     </Container>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollViewContent: {
+    flexGrow: 1, // Asegura que el ScrollView ocupe todo el espacio disponible
+  },
   searchInput: {
     backgroundColor: "#f3f3f3",
     borderRadius: 25,
@@ -191,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderRadius: 5,
     backgroundColor: "#e4e4e4",
-    alignItems: "center"
+    alignItems: "center",
   },
   allTab: {
     backgroundColor: "#c4eeff",
@@ -233,7 +264,6 @@ const styles = StyleSheet.create({
   orderContainer: {
     flexDirection: "column",
   },
-
   itemContainer: {
     padding: 15,
     borderBottomWidth: 1,
@@ -251,6 +281,12 @@ const styles = StyleSheet.create({
   },
   orderNoText: {
     color: "gray",
+  },
+  noOrdersText: {
+    textAlign: "center",
+    marginTop: 20,
+    fontSize: 18,
+    color: "#999",
   },
 });
 
