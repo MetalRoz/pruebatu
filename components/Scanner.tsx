@@ -5,6 +5,7 @@ import {
   View,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
@@ -16,34 +17,42 @@ import {
   addScanFailureListener,
 } from "../modules/laserscan-module";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Audio } from "expo-av";
 
 export default function Scanner() {
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<any>(null); // Estado para almacenar la respuesta de la API
-  const [checkInStatus, setCheckInStatus] = useState<number | null>(null); // Estado para el estado del check-in
-  const [forceRender, setForceRender] = useState(0); // Estado adicional para forzar re-renderizado
-  const [isLoading, setIsLoading] = useState(false); // Estado para controlar el loading
+  const [data, setData] = useState<any>(null);
+  const [checkInStatus, setCheckInStatus] = useState<number | null>(null);
+  const [forceRender, setForceRender] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
 
-  // Verifica si el ticket escaneado coincide con el último almacenado
+  // Función para cargar y reproducir sonido
+  const playSound = async () => {
+    const { sound } = await Audio.Sound.createAsync(
+      require("../assets/sounds/beep_sound.mp3")
+    );
+    setSound(sound);
+    await sound.playAsync();
+  };
+
   const verifyLastTicketId = async (ticketId: string) => {
     const lastTicketId = await AsyncStorage.getItem("lastScannedTicket");
     return lastTicketId === ticketId;
   };
 
-  // Almacena el último ticket escaneado en AsyncStorage
   const storeLastTicketId = async (ticketId: string) => {
     await AsyncStorage.setItem("lastScannedTicket", ticketId);
   };
 
   const checkIn = async (ticketId: any) => {
-    setIsLoading(true); // Iniciar loading
+    setIsLoading(true);
 
     const isLastTicket = await verifyLastTicketId(ticketId);
 
     if (isLastTicket) {
-      // Si el ticket coincide con el último almacenado, mostrar pantalla anaranjada
       setCheckInStatus(2);
-      setIsLoading(false); // Finalizar loading
+      setIsLoading(false);
       setForceRender((prev) => prev + 1);
       return;
     }
@@ -63,31 +72,21 @@ export default function Scanner() {
       try {
         const response = await fetch(apiCheckIn, options);
         const responseData = await response.json();
-
+        console.log(responseData);
         setData(responseData);
 
-        // Verificar el contenido de responseData.message
-        if (
-          responseData.message.includes(
-            "Este ticket ya se encuentra en el evento"
-          )
-        ) {
+        if (responseData.data.status === "1") {
           setCheckInStatus(1);
-          await storeLastTicketId(ticketId); // Almacenar el ticketId si es válido
-        } else if (
-          responseData.message.includes("Este ticket no es para este evento")
-        ) {
+          await storeLastTicketId(ticketId);
+        } else if (responseData.data.status === "0") {
           setCheckInStatus(0);
         }
 
-        // Forzamos un re-render después de cambiar el estado
         setForceRender((prev) => prev + 1);
-
-        console.log("Respuesta del CHECKIN:", responseData);
       } catch (error) {
         console.error("Error en la solicitud:", error);
       } finally {
-        setIsLoading(false); // Finalizar loading
+        setIsLoading(false);
       }
     }
   };
@@ -97,6 +96,7 @@ export default function Scanner() {
 
     const scanSuccessListener = addScanSuccessListener((event) => {
       checkIn(event.data);
+      playSound();
     });
 
     const scanFailureListener = addScanFailureListener((event) => {
@@ -106,6 +106,9 @@ export default function Scanner() {
     return () => {
       scanSuccessListener.remove();
       scanFailureListener.remove();
+      if (sound) {
+        sound.unloadAsync();
+      }
     };
   }, []);
 
@@ -120,7 +123,6 @@ export default function Scanner() {
   return (
     <View style={styles.container} key={forceRender}>
       {isLoading ? (
-        // Mostrar indicador de carga mientras se realiza el check-in
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
           <Text style={styles.loadingText}>Procesando check-in...</Text>
@@ -129,7 +131,6 @@ export default function Scanner() {
         <>
           <Button title="Iniciar scanner" onPress={iniciar} />
           <Button title="Detener scanner" onPress={detener} />
-
         </>
       ) : (
         <View
@@ -139,26 +140,27 @@ export default function Scanner() {
               ? styles.validCheckin
               : checkInStatus === 0
               ? styles.invalidCheckin
-              : styles.alreadyCheckedIn, // Estilo para el estado anaranjado
+              : styles.alreadyCheckedIn,
           ]}
         >
           {checkInStatus === 1 ? (
             <>
               <FontAwesome name="check-circle" size={80} color="white" />
-              <Text style={styles.resultText}>Checked in!</Text>
-              <Text style={styles.vipText}>VIP</Text>
-              <View style={styles.infoContainer}>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Name</Text>
-                  <Text style={styles.value}>Karna Ballefant</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Title</Text>
-                  <Text style={styles.value}>Assistant Manager</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Text style={styles.label}>Company</Text>
-                  <Text style={styles.value}>Yodo</Text>
+              <Text style={styles.verifiedText}>VERIFICADO</Text>
+
+              <View style={styles.vipContainer}>
+                <Text style={styles.vipText}>VIP</Text>
+
+                <View style={styles.infoContainer}>
+                  <View>
+                    <Text style={styles.value}>105A</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.value}>11FL</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.value}>23C</Text>
+                  </View>
                 </View>
               </View>
             </>
@@ -168,7 +170,6 @@ export default function Scanner() {
               <Text style={styles.resultText}>{data.message}</Text>
             </>
           ) : (
-            // Pantalla para ticket ya escaneado
             <>
               <FontAwesome
                 name="exclamation-triangle"
@@ -219,33 +220,44 @@ const styles = StyleSheet.create({
   },
   resultText: {
     color: "#fff",
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: "bold",
     marginTop: 20,
     textAlign: "center",
+  },
+  verifiedText: {
+    color: "#fff",
+    fontSize: 36,
+    fontWeight: "bold",
+    marginTop: 20,
+  },
+  checkImage: {
+    width: 100,
+    height: 100,
+  },
+  vipContainer: {
+    marginVertical: 20,
+    padding: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 10,
+    paddingVertical: 30,
   },
   vipText: {
     color: "#fff",
     fontSize: 28,
     fontWeight: "bold",
-    marginVertical: 20,
+    margin: "auto",
   },
   infoContainer: {
     marginTop: 20,
-  },
-  infoRow: {
+    display: "flex",
     flexDirection: "row",
-    justifyContent: "space-between",
-    width: "80%",
-    marginVertical: 5,
-  },
-  label: {
-    color: "#fff",
-    fontSize: 18,
+    gap: 30,
   },
   value: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
+    textAlign: "center",
   },
 });
